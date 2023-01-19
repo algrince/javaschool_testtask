@@ -1,6 +1,7 @@
 package com.tsystems.javaschool.tasks.subsequence;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class Subsequence {
 
@@ -14,7 +15,38 @@ public class Subsequence {
      */
     @SuppressWarnings("rawtypes")
     public boolean find(List x, List y) {
-        // TODO: Implement the logic here
-        return false;
+        // Check if any of two lists are null
+        if (x == null || y == null) {
+            throw new IllegalArgumentException();
+        }
+
+        ArrayList<Integer> idxs = new ArrayList<>();
+        List<String> yString = new ArrayList<String>();
+        for (Object i: y) {
+            yString.add(i.toString());
+        }
+
+        // Find indexes of elements from in x in y
+        for (int i=0; i < x.size(); i++) {
+            String element = String.valueOf(x.get(i));
+            if (yString.contains(element)) {
+                idxs.add(yString.indexOf(element));
+            }
+        }
+
+        // Check if all elements are conteined in y (by length) and their order
+        boolean state = false; 
+        if (idxs.size() == x.size()) {
+            state = true;
+            for (int j=0; j < idxs.size() - 1; j++) {
+                int currentIdx = (int) idxs.get(j);
+                int nextIdx = (int) idxs.get(j+1);
+                if (currentIdx > nextIdx) {
+                    state = false;
+                    break;
+                }
+            }
+        }
+        return state;
     }
 }
