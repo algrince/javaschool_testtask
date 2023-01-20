@@ -1,5 +1,7 @@
 package com.tsystems.javaschool.tasks.calculator;
 
+import java.text.DecimalFormat;
+
 public class Calculator {
 
     /**
@@ -11,19 +13,30 @@ public class Calculator {
      * @return string value containing result of evaluation or null if statement is invalid
      */
     public String evaluate(String statement) {
+
+        // End the method if statement is invalid
+        if (validate(statement) == false) {
+            return null;
+        }
+        String operationResult = divideIntoOperations(statement);
+        if (operationResult.isEmpty()) {
+            return null;
+        } else {
+            return format(operationResult);
+        }
+    }
+
+    public String divideIntoOperations(String statement){
         String plusSign = "+";
         String minusSign = "-";
         String timesSign = "*";
         String divisionSign = "/";
-
-        if (validate(statement) == false) {
-            return null;
-        }
+        // Make math operations while there are sings in statement
         while (statement.contains("(") || statement.contains(timesSign) || statement.contains(divisionSign)
             || statement.contains(plusSign) || statement.contains(minusSign)) {
             if (statement.contains("(")) {
                 String newStatement = statement.substring(statement.indexOf("(") + 1, statement.indexOf(")"));
-                String bracketsNumber = evaluate(newStatement);
+                String bracketsNumber = divideIntoOperations(newStatement);
                 statement = statement.replaceFirst("\\(([^\\)]+)\\)", bracketsNumber);
             }
             if (statement.contains(timesSign) && (statement.contains(divisionSign))) {
@@ -47,20 +60,28 @@ public class Calculator {
                     statement = operate(statement, plusSign);
                 }
             } else if (statement.contains(minusSign)) {
-                statement = operate(statement, minusSign);
+                // Handle situation when statement is just a negative number
+                String resultSub = operate(statement, minusSign);
+                if (resultSub == "negative") {
+                    break;
+                } else {
+                    statement = resultSub;
+                }
             } else if (statement.contains(plusSign)) {
                 statement = operate(statement, plusSign);
             }
         }
-        double result = Double.parseDouble(statement);
-        int roundRes = (int) Math.round(result);
-        return Integer.toString(roundRes);
+        return statement;
     }
 
     public String getRightNumber(String right) {
-        String number = ""; 
+        // Separate a number on the right from the sign in the statement
+        String number = "";
         for (int i=0; i < right.length(); i++) {
             char character = right.charAt(i);
+            if (character == '-' && i == 0) {
+                number = number + character;
+            }
             if (Character.isDigit(character) || character == '.') {
                 number = number + character;
             } else {
@@ -70,11 +91,37 @@ public class Calculator {
         return number;
     }
 
+    public String getLeftNumber(String left) {
+        // Separate a number on the right from the sign in the statement
+        String number = ""; 
+        for (int i=left.length() - 1; i >=0 ; i--) {
+            char character = left.charAt(i);
+            // Check if the number is negative
+            if (character == '-') {
+                number = number + character;
+                break;
+            } else if (Character.isDigit(character) || character == '.') {
+                number = number + character;
+            } else {
+                break;
+            }
+        }
+        StringBuilder reverseNumber = new StringBuilder();
+        reverseNumber.append(number);
+        reverseNumber.reverse();
+        String leftNumber = reverseNumber.toString(); 
+        return leftNumber;
+    }
+
     public String operate(String statement, String operator) {
         // Find numbers around the operator 
         String regexOperator = "\\" + operator;
         String[] dividedStatement = statement.split(regexOperator);
         String left = dividedStatement[0];
+        // If "left" is empty, a negative number was passed instead of an expression
+        if (left.isEmpty()) {
+            return "negative";
+        }
         String leftNumber = getLeftNumber(left);
         String right = dividedStatement[1];
         String rightNumber = getRightNumber(right);
@@ -97,8 +144,9 @@ public class Calculator {
                 toReplace = leftNumber + "*" + rightNumber;
                 break;
             case "/":
-                if (Integer.parseInt(rightNumber, 0, 0, 0) == 0) {
-                    return null;
+                // Handle division by 0
+                if (Double.parseDouble(rightNumber) == 0.0) {
+                    return "";
                 } else {
                     result = Double.parseDouble(leftNumber) / Double.parseDouble(rightNumber);
                     toReplace = leftNumber + "/" + rightNumber;
@@ -108,29 +156,12 @@ public class Calculator {
         return statement;
     }
 
-    public String getLeftNumber(String left) {
-        String number = ""; 
-        for (int i=left.length() - 1; i >=0 ; i--) {
-            char character = left.charAt(i);
-            if (character == '-') {
-                number = number + character;
-                break;
-            } else if (Character.isDigit(character) || character == '.') {
-                number = number + character;
-            } else {
-                break;
-            }
-        }
-        StringBuilder reverseNumber = new StringBuilder();
-        reverseNumber.append(number);
-        reverseNumber.reverse();
-        String leftNumber = reverseNumber.toString(); 
-        return leftNumber;
-    }
+
 
     public boolean validate(String statement) {
         char coma = ',';
 
+        // Check null/empty statements and ones that cointain comas/repeated symbols
         if (statement == null || statement.isEmpty() || 
         statement.matches(".*[^0-9()]{2,}.*") || statement.indexOf(coma) != -1) {
             return false;
@@ -143,7 +174,7 @@ public class Calculator {
         boolean validated = true;
         boolean insideBracket = false;
         
-
+        // Check parenthesis pairings 
         for (int i=0; i < statement.length(); i++) {
             if (statement.charAt(i) == openedBracket) {
                 validated = false;
@@ -161,10 +192,23 @@ public class Calculator {
         }
         }
 
+        // Statement is invalid if at the end parenthesis are open or the number of opened/closed does not match
         if (insideBracket == true || openedBracketCounter != closedBracketCounter) {
             validated = false;
         }
         return validated;
+    }
+
+    public String format(String finalStatement) {
+        // Formates a resulting number
+        double result = Double.parseDouble(finalStatement);
+        DecimalFormat whole = new DecimalFormat("#");
+        DecimalFormat decimal = new DecimalFormat("#.####");
+        if (result % 1 == 0) {
+            return whole.format(result);
+        } else {
+            return decimal.format(result);
+        }
     }
 
 }
