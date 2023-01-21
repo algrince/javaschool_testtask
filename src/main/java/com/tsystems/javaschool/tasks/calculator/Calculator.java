@@ -32,6 +32,8 @@ public class Calculator {
         String timesSign = "*";
         String divisionSign = "/";
         String[] numbers = {};
+        String result = "";
+        String toReplace = "";
         // Make math operations while there are sings in statement
         if (statement.contains("(")) {
             String newStatement = statement.substring(statement.indexOf("(") + 1, statement.indexOf(")"));
@@ -41,31 +43,37 @@ public class Calculator {
 
         int timesIndex = statement.indexOf(timesSign);
         int divisionIndex = statement.indexOf(divisionSign);
+        int plusIndex = statement.indexOf(plusSign);
+        int minusIndex = statement.indexOf(minusSign);
         if ((timesIndex < divisionIndex && timesIndex != -1 && divisionIndex != -1) 
             || (divisionIndex == -1 && timesIndex != -1)) {
             numbers = divideIntoOperands(statement, timesSign, false);
-            statement = operate(statement, timesSign, numbers);
+            result = operate(statement, timesSign, numbers);
+            toReplace = numbers[0] + timesIndex + numbers[1];
+
         } else if ((divisionIndex < timesIndex && divisionIndex != -1 && timesIndex != -1)
             || (timesIndex == -1 && divisionIndex != -1)){
             numbers = divideIntoOperands(statement, divisionSign, false);
-            statement = operate(statement, divisionSign, numbers);
-        }
+            result = operate(statement, divisionSign, numbers);
+            toReplace = numbers[0] + divisionIndex + numbers[1];
 
-        int plusIndex = statement.indexOf(plusSign);
-        int minusIndex = statement.indexOf(minusSign);
-        if ((plusIndex < minusIndex && plusIndex != -1 && minusIndex != -1)
+        } else if ((plusIndex < minusIndex && plusIndex != -1 && minusIndex != -1)
             || (minusIndex == -1 && plusIndex != -1)) {
             numbers = divideIntoOperands(statement, plusSign, false);
-            statement = operate(statement, plusSign, numbers);
+            result = operate(statement, plusSign, numbers);
+            toReplace = numbers[0] + plusIndex + numbers[1];
+
         } else if ((minusIndex < plusIndex && minusIndex != -1 && plusIndex != -1)
             || (plusIndex == -1 && minusIndex != -1)) {
             numbers = divideIntoOperands(statement, minusSign, false);
             if (numbers.length == 0) {
                 return statement;
             }
-            statement = operate(statement, minusSign, numbers);
+            result = operate(statement, minusSign, numbers);
+            toReplace = numbers[0] + plusIndex + numbers[1];
         }
         
+        statement = statement.replace(toReplace, result);
         minusIndex = statement.indexOf(minusIndex);
         if (minusIndex == 0) {
             statement = handleNegative(statement);
@@ -78,27 +86,39 @@ public class Calculator {
 
     public String handleNegative(String statement) {
         String[] numbers = {};
+        String result = "";
+        String toReplace = "";
         for (int i = 1; i < statement.length(); i++) {
             char ch = statement.charAt(i);
             switch (ch) {
                 case '+':
                     numbers = divideIntoOperands(statement, "+", true);
                     String[] numbersForSum = {numbers[1], numbers[0]};
-                    return operate(statement, "-", numbersForSum);
+                    result = operate(statement, "-", numbersForSum);
+                    toReplace = "-" + numbers[0] + "+" + numbers[1];
+                    break;
                 case '-':
                     numbers = divideIntoOperands(statement, "-", true);
-                    return "-" + operate(statement, "+", numbers);
+                    result = "-" + operate(statement, "+", numbers);
+                    toReplace = "-" + numbers[0] + "-" + numbers[1];
+                    break;
                 case '/':
                     numbers = divideIntoOperands(statement, "/", true);
-                    return "-" + operate(statement, "/", numbers);
+                    result = "-" + operate(statement, "/", numbers);
+                    if (result.equals("-")) {
+                        return null;
+                    }
+                    toReplace = "-" + numbers[0] + "/" + numbers[1];
+                    break;
                 case '*':
                     numbers = divideIntoOperands(statement, "/", true);
-                    return "-" + operate(statement, "/", numbers);
+                    result = "-" + operate(statement, "/", numbers);
+                    toReplace = "-" + numbers[0] +  "*" + numbers[1];
                 default:
                     continue;
             }
         }
-        return statement; 
+        return statement.replace(toReplace, result);
     }
 
 
@@ -174,22 +194,18 @@ public class Calculator {
         String leftNumber = numbers[0];
         String rightNumber = numbers[1];
 
-        // Make an operation and replace the expression with result
+        // Make an operation
         double result = 0.0;
-        String toReplace = "";
 
         switch (operator) {
             case "+":
                 result = Double.parseDouble(leftNumber) + Double.parseDouble(rightNumber);
-                toReplace = leftNumber + "+" + rightNumber;
                 break;
             case "-":
                 result = Double.parseDouble(leftNumber) - Double.parseDouble(rightNumber);
-                toReplace = leftNumber + "-" + rightNumber;
                 break;
             case "*":
                 result = Double.parseDouble(leftNumber) * Double.parseDouble(rightNumber);
-                toReplace = leftNumber + "*" + rightNumber;
                 break;
             case "/":
                 // Handle division by 0
@@ -197,11 +213,10 @@ public class Calculator {
                     return "";
                 } else {
                     result = Double.parseDouble(leftNumber) / Double.parseDouble(rightNumber);
-                    toReplace = leftNumber + "/" + rightNumber;
                 }
+                break;
         }
-        statement = statement.replace(toReplace, Double.toString(result));
-        return statement;
+        return Double.toString(result);
     }
 
 
