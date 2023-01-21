@@ -31,48 +31,76 @@ public class Calculator {
         String minusSign = "-";
         String timesSign = "*";
         String divisionSign = "/";
+        String[] numbers = {};
         // Make math operations while there are sings in statement
-        while (statement.contains("(") || statement.contains(timesSign) || statement.contains(divisionSign)
-            || statement.contains(plusSign) || statement.contains(minusSign)) {
-            if (statement.contains("(")) {
-                String newStatement = statement.substring(statement.indexOf("(") + 1, statement.indexOf(")"));
-                String bracketsNumber = divideIntoOperations(newStatement);
-                statement = statement.replaceFirst("\\(([^\\)]+)\\)", bracketsNumber);
+        if (statement.contains("(")) {
+            String newStatement = statement.substring(statement.indexOf("(") + 1, statement.indexOf(")"));
+            String bracketsNumber = divideIntoOperations(newStatement);
+            statement = statement.replaceFirst("\\(([^\\)]+)\\)", bracketsNumber);
+        }
+
+        int timesIndex = statement.indexOf(timesSign);
+        int divisionIndex = statement.indexOf(divisionSign);
+        if ((timesIndex < divisionIndex && timesIndex != -1 && divisionIndex != -1) 
+            || (divisionIndex == -1 && timesIndex != -1)) {
+            numbers = divideIntoOperands(statement, timesSign, false);
+            statement = operate(statement, timesSign, numbers);
+        } else if ((divisionIndex < timesIndex && divisionIndex != -1 && timesIndex != -1)
+            || (timesIndex == -1 && divisionIndex != -1)){
+            numbers = divideIntoOperands(statement, divisionSign, false);
+            statement = operate(statement, divisionSign, numbers);
+        }
+
+        int plusIndex = statement.indexOf(plusSign);
+        int minusIndex = statement.indexOf(minusSign);
+        if ((plusIndex < minusIndex && plusIndex != -1 && minusIndex != -1)
+            || (minusIndex == -1 && plusIndex != -1)) {
+            numbers = divideIntoOperands(statement, plusSign, false);
+            statement = operate(statement, plusSign, numbers);
+        } else if ((minusIndex < plusIndex && minusIndex != -1 && plusIndex != -1)
+            || (plusIndex == -1 && minusIndex != -1)) {
+            numbers = divideIntoOperands(statement, minusSign, false);
+            if (numbers.length == 0) {
+                return statement;
             }
-            if (statement.contains(timesSign) && (statement.contains(divisionSign))) {
-                if (statement.indexOf(timesSign) < statement.indexOf(divisionSign)) {
-                    statement = operate(statement, timesSign);
-                    statement = operate(statement, divisionSign);
-                } else {
-                    statement = operate(statement, divisionSign);
-                    statement = operate(statement, timesSign);
-                }
-            } else if (statement.contains(timesSign)) {
-                statement = operate(statement, timesSign);
-            } else if (statement.contains(divisionSign)) {
-                statement = operate(statement, divisionSign);
-            } else if (statement.contains(plusSign) && statement.contains(minusSign)) {
-                if (statement.indexOf(plusSign) < statement.indexOf(minusSign)) {
-                    statement = operate(statement, plusSign);
-                    statement = operate(statement, minusSign);
-                } else {
-                    statement = operate(statement, minusSign);
-                    statement = operate(statement, plusSign);
-                }
-            } else if (statement.contains(minusSign)) {
-                // Handle situation when statement is just a negative number
-                String resultSub = operate(statement, minusSign);
-                if (resultSub == "negative") {
-                    break;
-                } else {
-                    statement = resultSub;
-                }
-            } else if (statement.contains(plusSign)) {
-                statement = operate(statement, plusSign);
-            }
+            statement = operate(statement, minusSign, numbers);
+        }
+        
+        minusIndex = statement.indexOf(minusIndex);
+        if (minusIndex == 0) {
+            statement = handleNegative(statement);
+        } else if (statement.contains(plusSign) || (statement.contains(minusSign) && minusIndex != 0)
+        || statement.contains(timesSign) || statement.contains(divisionSign)) {
+            return divideIntoOperations(statement);
         }
         return statement;
     }
+
+    public String handleNegative(String statement) {
+        String[] numbers = {};
+        for (int i = 1; i < statement.length(); i++) {
+            char ch = statement.charAt(i);
+            switch (ch) {
+                case '+':
+                    numbers = divideIntoOperands(statement, "+", true);
+                    String[] numbersForSum = {numbers[1], numbers[0]};
+                    return operate(statement, "-", numbersForSum);
+                case '-':
+                    numbers = divideIntoOperands(statement, "-", true);
+                    return "-" + operate(statement, "+", numbers);
+                case '/':
+                    numbers = divideIntoOperands(statement, "/", true);
+                    return "-" + operate(statement, "/", numbers);
+                case '*':
+                    numbers = divideIntoOperands(statement, "/", true);
+                    return "-" + operate(statement, "/", numbers);
+                default:
+                    continue;
+            }
+        }
+        return statement; 
+    }
+
 
     public String getRightNumber(String right) {
         // Separate a number on the right from the sign in the statement
@@ -93,12 +121,13 @@ public class Calculator {
 
     public String getLeftNumber(String left) {
         // Separate a number on the right from the sign in the statement
-        String number = ""; 
-        for (int i=left.length() - 1; i >=0 ; i--) {
+        String number = "";
+        boolean negative = false; 
+        for (int i = left.length() - 1; i >= 0 ; i--) {
             char character = left.charAt(i);
             // Check if the number is negative
             if (character == '-') {
-                number = number + character;
+                negative = true;
                 break;
             } else if (Character.isDigit(character) || character == '.') {
                 number = number + character;
@@ -109,22 +138,41 @@ public class Calculator {
         StringBuilder reverseNumber = new StringBuilder();
         reverseNumber.append(number);
         reverseNumber.reverse();
-        String leftNumber = reverseNumber.toString(); 
-        return leftNumber;
+        String leftNumber = reverseNumber.toString();
+        if (negative) {
+            return "-" + leftNumber;
+        } else {
+            return leftNumber;
+        }
     }
 
-    public String operate(String statement, String operator) {
+    public String[] divideIntoOperands(String statement, String operator, boolean leftNegative) {
         // Find numbers around the operator 
         String regexOperator = "\\" + operator;
         String[] dividedStatement = statement.split(regexOperator);
         String left = dividedStatement[0];
         // If "left" is empty, a negative number was passed instead of an expression
         if (left.isEmpty()) {
-            return "negative";
+            String[] isNegativeNumber = {};
+            return isNegativeNumber;
         }
         String leftNumber = getLeftNumber(left);
         String right = dividedStatement[1];
         String rightNumber = getRightNumber(right);
+        if (leftNegative) {
+            leftNumber = leftNumber.substring(1);
+        }
+        String[] numbers = {leftNumber, rightNumber};
+        return numbers;
+    } 
+
+    public String operate(String statement, String operator, String[] numbers) {
+        if (numbers.length == 0) {
+            return statement;
+        } 
+
+        String leftNumber = numbers[0];
+        String rightNumber = numbers[1];
 
         // Make an operation and replace the expression with result
         double result = 0.0;
@@ -159,11 +207,11 @@ public class Calculator {
 
 
     public boolean validate(String statement) {
-        char coma = ',';
+        String coma = ",";
 
         // Check null/empty statements and ones that cointain comas/repeated symbols
         if (statement == null || statement.isEmpty() || 
-        statement.matches(".*[^0-9()]{2,}.*") || statement.indexOf(coma) != -1) {
+        statement.matches(".*[^0-9()]{2,}.*") || statement.contains(coma)) {
             return false;
         }
 
