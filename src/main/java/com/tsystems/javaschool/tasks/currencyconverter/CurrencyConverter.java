@@ -14,31 +14,33 @@ public class CurrencyConverter {
      */
     public String convert(double dollarToEuroRate, String statement) {
         Stack<String> actionOrder = new Stack<String>();
-        boolean hasParentheses = findParentheses(statement, actionOrder);
-        System.out.println(hasParentheses);
-        System.out.println(actionOrder);
-        String output = unpack(actionOrder, dollarToEuroRate);
-        System.out.println(output);
-        return output;
+        findParentheses(statement, actionOrder);
+        return unpack(actionOrder, dollarToEuroRate);
     }
     
-    public boolean findParentheses(String statement, Stack actionOrder) {
+    public void findParentheses(String statement, Stack actionOrder) {
+        //Find covertion by looking for parentheses
         int indexOpened = statement.indexOf("(");
         int indexClosed = statement.lastIndexOf(")");
+
         if (indexOpened != -1 && indexClosed != -1) {
             actionOrder.push(statement.substring(0, indexOpened));
             findOperations(statement.substring(indexOpened + 1, indexClosed), actionOrder);
+
+            // Check if the number to convert contains convertion
             if (String.valueOf(actionOrder.peek()).contains("(")) {
-                boolean innerParentheses = findParentheses(String.valueOf(actionOrder.pop()), actionOrder);
+                findParentheses(String.valueOf(actionOrder.pop()), actionOrder);
             }
-            return true;
-        } 
-        findOperations(statement, actionOrder);;
-        return false;
+            return;
+        }
+
+        findOperations(statement, actionOrder);
+        return;
     }
     
 
     public void findOperations(String statement, Stack actionOrder) {
+        // Find operations between numbers and/or convertions
         int indexPlus = statement.indexOf("+");
         int indexMinus = statement.indexOf("-");
         
@@ -58,60 +60,48 @@ public class CurrencyConverter {
     public String unpack(Stack actionOrder, double dollarToEuroRate) {
         while (!actionOrder.isEmpty()) {
             String element = String.valueOf(actionOrder.pop());
-                String currency = checkCurrencyType(element);
-                double number = trimNumberFromCurrency(element, currency);
-                String nextElement = "";
-                if (actionOrder.size() >= 1) {
-                    nextElement = String.valueOf(actionOrder.pop());
-                } else {
-                    return uniteNumberWithCurrency(number, currency);
-                }
+            String currency = checkCurrencyType(element);
+            double number = trimNumberFromCurrency(element, currency);
+            String nextElement = "";
 
-                if (nextElement.equals("convertToDollar") && currency == "euro") {
-                    actionOrder.push(uniteNumberWithCurrency(number / dollarToEuroRate, "dollar"));
-                } else if (nextElement.equals("convertToEuro") && currency == "dollar") {
-                    actionOrder.push(uniteNumberWithCurrency(number * dollarToEuroRate, "euro"));
-                } else if (nextElement.equals("convertToDollar") || nextElement.equals("convertToEuro")) {
+            if (actionOrder.size() >= 1) {
+                nextElement = String.valueOf(actionOrder.pop());
+            } else {
+                return uniteNumberWithCurrency(number, currency);
+            }
+
+            if (nextElement.equals("convertToDollar") && currency == "euro") {
+                actionOrder.push(uniteNumberWithCurrency(number / dollarToEuroRate, "dollar"));
+            } else if (nextElement.equals("convertToEuro") && currency == "dollar") {
+                actionOrder.push(uniteNumberWithCurrency(number * dollarToEuroRate, "euro"));
+            } else if (nextElement.equals("convertToDollar") || nextElement.equals("convertToEuro")) {
+                throw new CannotConvertCurrencyException();
+        
+            } else if (nextElement.equals("+") || nextElement.equals("-")) {
+                String secondOperand = String.valueOf(actionOrder.pop());
+                if (secondOperand.contains("convertToDollar") || secondOperand.contains("convertToEuro")) {
+                    secondOperand = convert(dollarToEuroRate, secondOperand);
+                }
+                String secondCurrency = checkCurrencyType(secondOperand);
+                if (currency != secondCurrency) {
                     throw new CannotConvertCurrencyException();
-                } else if (nextElement.equals("+")) {
-                    String secondOperand = String.valueOf(actionOrder.pop());
-                    if (secondOperand.contains("convertToDollar") || secondOperand.contains("convertToEuro")) {
-                        secondOperand = convert(dollarToEuroRate, secondOperand);
-                    }
-                    String secondCurrency = checkCurrencyType(secondOperand);
-                    if (currency != secondCurrency) {
-                        throw new CannotConvertCurrencyException();
-                    }
-                    double secondNumber = trimNumberFromCurrency(secondOperand, secondCurrency);
-                    actionOrder.push(uniteNumberWithCurrency(number + secondNumber, secondCurrency));
-                } else if (nextElement.equals("-")) {
-                    String secondOperand = String.valueOf(actionOrder.pop());
-                    if (secondOperand.contains("convertToDollar") || secondOperand.contains("convertToEuro")) {
-                        secondOperand = convert(dollarToEuroRate, secondOperand);
-                    }
-                    String secondCurrency = checkCurrencyType(secondOperand);
-                    if (currency != secondCurrency) {
-                        throw new CannotConvertCurrencyException();
-                    }
-                    double secondNumber = trimNumberFromCurrency(secondOperand, secondCurrency);
-                    actionOrder.push(uniteNumberWithCurrency(secondNumber - number, secondCurrency));
+                }
+                double secondNumber = trimNumberFromCurrency(secondOperand, secondCurrency);
+                actionOrder.push(uniteNumberWithCurrency(
+                    operate(number, secondNumber, nextElement), secondCurrency));
                 }
             }
         return "";
     }
-    
-    public String checkType(String element) {
-        if (element.equals("convertToDollar")) {
-            return "convert dollar";
-        } else if (element.equals("convertToEuro")){
-            return "convert euro";
-        } else if (element.contains("+")) {
-            return "suma";
-        } else if (element.contains("-")) {
-            return "substraction";
-        } else {
-            return "simple number";
+
+    public double operate(double firstNumber, double secondNumber, String operator) {
+        switch (operator) {
+            case "+":
+                return secondNumber + firstNumber;
+            case "-":
+                return secondNumber - firstNumber;
         }
+        return 0.0;
     }
 
     public String checkCurrencyType(String currency) {
@@ -138,7 +128,6 @@ public class CurrencyConverter {
     public String uniteNumberWithCurrency(double number, String currency) {
         switch (currency) {
             case "dollar":
-                System.out.println("$" + format(number));
                 return "$" + format(number);
             case "euro":
                 return format(number) + "euro";
