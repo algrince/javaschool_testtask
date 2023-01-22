@@ -12,7 +12,9 @@ The exam includes 3 tasks to be done. Please, choose 3 of 5: [Calculator](/tasks
 ### Result ###
 
 * Author name : Ekaterina Mitiashkina
-* Pipeline status: [![Project CI](https://github.com/algrince/javaschool_testtask/actions/workflows/maven.yml/badge.svg)](https://github.com/algrince/javaschool_testtask/actions/workflows/maven.yml)
+* Pipeline status: 
+[![Project CI](https://github.com/algrince/javaschool_testtask/actions/workflows/maven.yml/badge.svg)](https://github.com/algrince/javaschool_testtask/actions/workflows/maven.yml)
+* Completed tasks: Pyramid, CurrencyConverter, Subsequence
 
 
 ### How to start?  ###
